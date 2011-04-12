@@ -17,9 +17,12 @@ class Action(object):
         self.actionKey = key
         self.knownActions = []
 
-    def run(self, action, **kwargs):
+    def run(self, action, *args):
         if hasattr(self, "_" + action):
-            return getattr(self, "_" + action)(kwargs)
+            if args:
+                return getattr(self, "_" + action)(args)
+            else:
+                return getattr(self, "_" + action)()
         else:
             return "No such %s method defined for %s Action !" % (action, self.actionKey)
 
@@ -32,11 +35,11 @@ class ActionServices(Action):
     def _listServices(self):
         return list(self.link.System.Service)
 
-    def _isRunning(self, service):
+    def _isRunning(self, args):
         if service in self._listServices:
-            if unicode(link.System.Service[service].info()[2]) == "on":
-                return True
-        return False
+            if unicode(link.System.Service[args[0]].info()[2]) == "on":
+                return "TRUE"
+        return "FALSE"
 
 class ActionPackages(Action):
 

@@ -42,15 +42,23 @@ class ServerContextFactory:
 
 class Echo(Protocol):
 
+    delimiter = '\r\n'
+
     def dataReceived(self, data):
         name, key, action = map(lambda x: x.strip(), data.split('|',2))
+        action, method = map(lambda x: x.strip(), action.split(':',1))
+
         log("Data received from '%s'" % name)
 
         if self.checkKey(key):
             log("Key check suceeded !")
             if action == "HAND_SHAKE":
                 log("HAND_SHAKE suceeded with '%s'" % name)
-                self.transport.write(str('|'.join((MY_NAME, MY_KEY, "AUTHORIZED"))))
+                self.pushMessage("AUTHORIZED")
+            elif action in ACTIONS:
+                self.pushMessage(ACTIONS[action].run(method))
+            else:
+                self.pushMessage("NOT_IMPLEMENTED")
         else:
             log("Key check failed !")
 
@@ -58,6 +66,11 @@ class Echo(Protocol):
         log("Checking key... ")
         # Poor Man's check
         return key in KNOWN_KEYS
+
+    def pushMessage(self, message):
+        if type(message) in (list, tuple):
+            message = ','.join(message)
+        self.transport.write(str('|'.join((MY_NAME, MY_KEY, message))) + self.delimiter)
 
 class EchoFactory(Factory):
     protocol = Echo

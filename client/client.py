@@ -26,7 +26,8 @@ KNOWN_KEYS = ["KEY_1"]
 class EchoClient(LineReceiver):
 
     def connectionMade(self):
-        self.sendLine("HAND_SHAKE")
+        # self.sendLine("HAND_SHAKE")
+        self.sendLine("SERVICE:listServices")
         # self.transport.loseConnection()
 
     def connectionLost(self, reason):
