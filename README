@@ -1,1 +1,9 @@
 Lobby Twisted fun ! jsut for play, for now :)
+
+A simple way to create self-signed certificate;
+
+openssl req \
+  -x509 -nodes -days 365 \
+  -newkey rsa:1024 -keyout cert.pem -out cert.pem
+
+Then put the 'cerẗ́.pem' file under 'server' directory
