@@ -11,6 +11,9 @@
 
 # Credits Copyright (c) Twisted Matrix Laboratories
 
+import sys
+import time
+
 from OpenSSL import SSL
 
 from twisted.internet import ssl
@@ -18,69 +21,63 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import Factory
 
+from verifiedssl import VerifyingServerContextFactory
+
 from actions import ActionServices
 from actions import ActionPackages
 
-MY_KEY = "KEY_1"
 MY_NAME= "SERVER"
 
-KNOWN_KEYS = ["KEY_1", "KEY_2", "KEY_3"]
 ACTIONS = {"SERVICE" : ActionServices(),
            "PACKAGE" : ActionPackages()}
 
 def log(msg):
-    print "LOBBY >>>", msg
-
-class ServerContextFactory:
-    def getContext(self):
-
-        ctx = SSL.Context(SSL.SSLv23_METHOD)
-        ctx.use_certificate_file('cert.pem')
-        ctx.use_privatekey_file('cert.pem')
-
-        return ctx
+    print "LOBBY (%s) >>>", time.ctime(), msg
 
 class Echo(Protocol):
 
     delimiter = '\r\n'
 
     def dataReceived(self, data):
-        name, key, action = map(lambda x: x.strip(), data.split('|',2))
+        name, action = map(lambda x: x.strip(), data.split('|',1))
         action, method = map(lambda x: x.strip(), action.split(':',1))
 
-        log("Data received from '%s'" % name)
+        # log("Data received from '%s'" % name)
 
-        if self.checkKey(key):
-            log("Key check suceeded !")
-            if action == "HAND_SHAKE":
-                log("HAND_SHAKE suceeded with '%s'" % name)
-                self.pushMessage("AUTHORIZED")
-            elif action in ACTIONS:
-                self.pushMessage(ACTIONS[action].run(method))
-            else:
-                self.pushMessage("NOT_IMPLEMENTED")
+        if action == "HAND_SHAKE":
+            log("HAND_SHAKE suceeded with '%s'" % name)
+            self.pushMessage("AUTHORIZED")
+        elif action in ACTIONS:
+            self.pushMessage(ACTIONS[action].run(method))
         else:
-            log("Key check failed !")
-
-    def checkKey(self, key):
-        log("Checking key... ")
-        # Poor Man's check
-        return key in KNOWN_KEYS
+            self.pushMessage("NOT_IMPLEMENTED")
 
     def pushMessage(self, message):
         if type(message) in (list, tuple):
             message = ','.join(message)
-        self.transport.write(str('|'.join((MY_NAME, MY_KEY, message))) + self.delimiter)
+        self.transport.write(str('|'.join((MY_NAME, message))) + self.delimiter)
 
 class EchoFactory(Factory):
     protocol = Echo
 
 if __name__ == '__main__':
 
-    # from twisted.python import log
-    # log.startLogging(sys.stdout)
+    from twisted.python import log
+    log.startLogging(sys.stdout)
+
+    KNOWN_CERTIFICATES = ["ss_cert_b.pem", "ss_cert_c.pem"]
+
+    SERVER_CERT_FILE = "ss_cert_a.pem"
+    SERVER_KEY_FILE  = "ss_key_a.pem"
 
     factory = EchoFactory()
-    reactor.listenSSL(8000, factory, ServerContextFactory())
+
+    ctxFactory = VerifyingServerContextFactory(SERVER_CERT_FILE, SERVER_KEY_FILE)
+    # Only clients presenting this certificate are allowed
+    # to connect to the server.
+    for cert in KNOWN_CERTIFICATES:
+        ctxFactory.loadAllowedCertificate(cert)
+
+    reactor.listenSSL(8000, factory, ctxFactory)
     reactor.run()
 

@@ -18,10 +18,9 @@ from twisted.internet.protocol import ClientFactory
 from twisted.protocols.basic import LineReceiver
 from twisted.internet import ssl, reactor
 
-MY_KEY = "KEY_1"
-MY_NAME= "CLIENT"
+from verifiedssl import VerifyingClientContextFactory
 
-KNOWN_KEYS = ["KEY_1"]
+MY_NAME= "CLIENT"
 
 class EchoClient(LineReceiver):
 
@@ -37,7 +36,7 @@ class EchoClient(LineReceiver):
         print 'I received :', line
 
     def sendLine(self, line):
-        LineReceiver.sendLine(self, '|'.join((MY_NAME, MY_KEY, line)))
+        LineReceiver.sendLine(self, '|'.join((MY_NAME, line)))
 
 class EchoClientFactory(ClientFactory):
     protocol = EchoClient
@@ -52,7 +51,17 @@ class EchoClientFactory(ClientFactory):
 
 def main():
     factory = EchoClientFactory()
-    reactor.connectSSL('localhost', 8000, factory, ssl.ClientContextFactory())
+
+    SERVER_CERT_FILE = "ss_cert_a.pem"
+
+    CLIENT_CERT_FILE = "ss_cert_b.pem"
+    CLIENT_KEY_FILE  = "ss_key_b.pem"
+
+    ctxFactory = VerifyingClientContextFactory(CLIENT_CERT_FILE, CLIENT_KEY_FILE)
+    # The client will only connect to a server which presents this certificate.
+    ctxFactory.loadAllowedCertificate(SERVER_CERT_FILE)
+
+    reactor.connectSSL('localhost', 8000, factory, ctxFactory)
     reactor.run()
 
 if __name__ == '__main__':
