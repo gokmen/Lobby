@@ -1,6 +1,38 @@
-Lobby Twisted fun ! jsut for play, for now :)
+Lobby
+~~~~~
 
-A simple way to create self-signed certificate;
+Install:
+--------
 
-sh make_demo_keys.sh
+# make install
+
+Usage:
+------
+
+- Before starting to use you have to create certificate;
+  you can use create_key.sh script.
+
+- Then copy created my_cert.pem and my_key.pem files under the
+  ~/lobby directory.
+
+- Set the server ip address and port in ~/lobby/server_addr file
+  like: localhost:8000
+
+- ~/lobby directory includes;
+
+  ├── certificates            ==> Includes client certificates
+  │   └── client_1_cert.pem   ==> The name of the file is not
+  │                               important, but .pem suffix required
+  ├── my_cert.pem             ==> Own certificate file
+  ├── my_key.pem              ==> Own key file
+  ├── server_addr             ==> Server information (addr:port)
+  └── server_cert.pem         ==> Server certificate if this machine
+                                  is in slave mode.
+
+- When you ready call the lobby !
+
+  For Server: $ lobby-server
+  For Client: $ lobby-client
+
+Have Fun !
 

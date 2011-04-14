@@ -14,15 +14,17 @@
 from OpenSSL import SSL
 import sys
 
-from twisted.internet.protocol import ClientFactory
-from twisted.protocols.basic import LineReceiver
 from twisted.internet import ssl, reactor
+from twisted.internet.error import ReactorNotRunning
+from twisted.internet.protocol import ClientFactory
+
+from twisted.protocols.basic import LineReceiver
 
 from lobby.ssl.verifiedssl import VerifyingClientContextFactory
 
 MY_NAME = "CLIENT"
 
-class EchoClient(LineReceiver):
+class LobbyClient(LineReceiver):
 
     def connectionMade(self):
         # self.sendLine("HAND_SHAKE")
@@ -38,8 +40,8 @@ class EchoClient(LineReceiver):
     def sendLine(self, line):
         LineReceiver.sendLine(self, '|'.join((MY_NAME, line)))
 
-class EchoClientFactory(ClientFactory):
-    protocol = EchoClient
+class LobbyClientFactory(ClientFactory):
+    protocol = LobbyClient
 
     def clientConnectionFailed(self, connector, reason):
         print 'Connection Failed:', reason.getErrorMessage()
@@ -47,21 +49,30 @@ class EchoClientFactory(ClientFactory):
 
     def clientConnectionLost(self, connector, reason):
         print 'Connection Lost:', reason.getErrorMessage()
-        reactor.stop()
+        try:
+            reactor.stop()
+        except ReactorNotRunning:
+            pass
 
 def main():
-    factory = EchoClientFactory()
 
-    SERVER_CERT_FILE = "ss_cert_a.pem"
+    from twisted.python import log
+    log.startLogging(sys.stdout)
 
-    CLIENT_CERT_FILE = "ss_cert_b.pem"
-    CLIENT_KEY_FILE  = "ss_key_b.pem"
+    from lobby.utils import get_server_addr
+    from lobby.utils import init_certificates
+    from lobby.utils import get_server_certificate
 
-    ctxFactory = VerifyingClientContextFactory(CLIENT_CERT_FILE, CLIENT_KEY_FILE)
+    certificate, key_file = init_certificates()
+    ctxFactory = VerifyingClientContextFactory(certificate, key_file)
     # The client will only connect to a server which presents this certificate.
-    ctxFactory.loadAllowedCertificate(SERVER_CERT_FILE)
+    ctxFactory.loadAllowedCertificate(get_server_certificate())
 
-    reactor.connectSSL('localhost', 8000, factory, ctxFactory)
+    server, port = get_server_addr()
+
+    factory = LobbyClientFactory()
+
+    reactor.connectSSL(server, int(port), factory, ctxFactory)
     reactor.run()
 
 if __name__ == '__main__':

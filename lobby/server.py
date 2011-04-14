@@ -34,7 +34,7 @@ ACTIONS = {"SERVICE" : ActionServices(),
 def log(msg):
     print "LOBBY (%s) >>>", time.ctime(), msg
 
-class Echo(Protocol):
+class Lobby(Protocol):
 
     delimiter = '\r\n'
 
@@ -57,25 +57,25 @@ class Echo(Protocol):
             message = ','.join(message)
         self.transport.write(str('|'.join((MY_NAME, message))) + self.delimiter)
 
-class EchoFactory(Factory):
-    protocol = Echo
+class LobbyFactory(Factory):
+    protocol = Lobby
 
 if __name__ == '__main__':
 
     from twisted.python import log
     log.startLogging(sys.stdout)
 
-    KNOWN_CERTIFICATES = ["ss_cert_b.pem", "ss_cert_c.pem"]
+    from lobby.utils import init_certificates
+    from lobby.utils import get_client_certificates
 
-    SERVER_CERT_FILE = "ss_cert_a.pem"
-    SERVER_KEY_FILE  = "ss_key_a.pem"
+    factory = LobbyFactory()
 
-    factory = EchoFactory()
+    certificate, key_file = init_certificates()
+    ctxFactory = VerifyingServerContextFactory(certificate, key_file)
 
-    ctxFactory = VerifyingServerContextFactory(SERVER_CERT_FILE, SERVER_KEY_FILE)
     # Only clients presenting this certificate are allowed
     # to connect to the server.
-    for cert in KNOWN_CERTIFICATES:
+    for cert in get_client_certificates():
         ctxFactory.loadAllowedCertificate(cert)
 
     reactor.listenSSL(8000, factory, ctxFactory)
