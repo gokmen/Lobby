@@ -18,9 +18,9 @@ from twisted.internet.protocol import ClientFactory
 from twisted.protocols.basic import LineReceiver
 from twisted.internet import ssl, reactor
 
-from verifiedssl import VerifyingClientContextFactory
+from lobby.ssl.verifiedssl import VerifyingClientContextFactory
 
-MY_NAME= "CLIENT"
+MY_NAME = "CLIENT"
 
 class EchoClient(LineReceiver):
 

@@ -21,12 +21,12 @@ from twisted.internet import reactor
 from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import Factory
 
-from verifiedssl import VerifyingServerContextFactory
+from lobby.ssl.verifiedssl import VerifyingServerContextFactory
 
-from actions import ActionServices
-from actions import ActionPackages
+from lobby.actions import ActionServices
+from lobby.actions import ActionPackages
 
-MY_NAME= "SERVER"
+MY_NAME = "SERVER"
 
 ACTIONS = {"SERVICE" : ActionServices(),
            "PACKAGE" : ActionPackages()}
