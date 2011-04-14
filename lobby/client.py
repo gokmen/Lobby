@@ -11,8 +11,9 @@
 
 # Credits Copyright (c) Twisted Matrix Laboratories
 
-from OpenSSL import SSL
+import os
 import sys
+from OpenSSL import SSL
 
 from twisted.internet import ssl, reactor
 from twisted.internet.error import ReactorNotRunning
@@ -27,18 +28,17 @@ MY_NAME = "CLIENT"
 class LobbyClient(LineReceiver):
 
     def connectionMade(self):
-        # self.sendLine("HAND_SHAKE")
-        self.sendLine("SERVICE:listServices")
+        self.sendLine("HELLO")
+        # self.sendLine("SERVICE:listServices")
         # self.transport.loseConnection()
 
     def connectionLost(self, reason):
         print 'Something Happened !'
 
     def lineReceived(self, line):
-        print 'I received :', line
-
-    def sendLine(self, line):
-        LineReceiver.sendLine(self, '|'.join((MY_NAME, line)))
+        if line.startswith('HELLO'):
+            self.sendLine('MY_NAME_IS:%s' % os.getenv('HOSTNAME'))
+        # print 'I received :', line
 
 class LobbyClientFactory(ClientFactory):
     protocol = LobbyClient
@@ -56,6 +56,9 @@ class LobbyClientFactory(ClientFactory):
 
 def main():
 
+    if len(sys.argv) < 4:
+        sys.exit('Usage: %s SERVER_IP SERVER_PORT SERVER_CERT_FILE' % sys.argv[0])
+
     from twisted.python import log
     log.startLogging(sys.stdout)
 
@@ -65,10 +68,11 @@ def main():
 
     certificate, key_file = init_certificates()
     ctxFactory = VerifyingClientContextFactory(certificate, key_file)
-    # The client will only connect to a server which presents this certificate.
-    ctxFactory.loadAllowedCertificate(get_server_certificate())
 
-    server, port = get_server_addr()
+    # The client will only connect to a server which presents this certificate.
+    ctxFactory.loadAllowedCertificate(sys.argv[3])
+
+    server, port = sys.argv[1], sys.argv[2]
 
     factory = LobbyClientFactory()
 

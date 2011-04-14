@@ -31,21 +31,17 @@ MY_NAME = "SERVER"
 ACTIONS = {"SERVICE" : ActionServices(),
            "PACKAGE" : ActionPackages()}
 
-def log(msg):
-    print "LOBBY (%s) >>>", time.ctime(), msg
-
 class Lobby(Protocol):
 
     delimiter = '\r\n'
 
     def dataReceived(self, data):
-        name, action = map(lambda x: x.strip(), data.split('|',1))
-        action, method = map(lambda x: x.strip(), action.split(':',1))
+        action = data
 
-        # log("Data received from '%s'" % name)
-
-        if action == "HAND_SHAKE":
-            log("HAND_SHAKE suceeded with '%s'" % name)
+        if action.startswith("HELLO"):
+            self.pushMessage("HELLO")
+        elif action.startswith('MY_NAME_IS:'):
+            print ("HAND_SHAKE suceeded with '%s'" % action.split(':')[1])
             self.pushMessage("AUTHORIZED")
         elif action in ACTIONS:
             self.pushMessage(ACTIONS[action].run(method))
@@ -55,7 +51,7 @@ class Lobby(Protocol):
     def pushMessage(self, message):
         if type(message) in (list, tuple):
             message = ','.join(message)
-        self.transport.write(str('|'.join((MY_NAME, message))) + self.delimiter)
+        self.transport.write(message + self.delimiter)
 
 class LobbyFactory(Factory):
     protocol = Lobby
