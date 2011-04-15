@@ -32,20 +32,26 @@ MY_NAME = "CLIENT"
 class LobbyClientReceiver(LineReceiver):
 
     def connectionMade(self):
-        self.sendLine("HELLO")
-        # self.sendLine("SERVICE:listServices")
-        # self.transport.loseConnection()
+        for message in self.factory.message_queue:
+            self.sendLine(message)
 
     def connectionLost(self, reason):
         print 'Something Happened !'
 
     def lineReceived(self, line):
-        if line.startswith('HELLO'):
-            self.sendLine('MY_NAME_IS:%s' % os.getenv('HOSTNAME'))
-        # print 'I received :', line
+        if line.startswith('HELLO|HELLO'):
+            self.sendLine('HELLO|MY_NAME_IS;%s' % os.getenv('HOSTNAME'))
+        else:
+            package, reply = line.strip().split('|')
+            self.factory.received_data[package] = reply
 
 class LobbyClientFactory(ClientFactory):
     protocol = LobbyClientReceiver
+    message_queue = ["HELLO"]
+    received_data = {}
+
+    def addMessageToQueue(self, message):
+        self.message_queue.append(message)
 
     def clientConnectionFailed(self, connector, reason):
         print 'Connection Failed:', reason.getErrorMessage()
@@ -71,11 +77,14 @@ class LobbyClient(object):
     def connectSSL(self, server, port):
         reactor.connectSSL(server, int(port), self.factory, self.ctx_factory)
 
-    def run(self):
+    def run(self, message = None):
+        if message:
+            self.factory.addMessageToQueue(message)
         reactor.run()
+        self._received_data = self.factory.received_data
 
-    def sendMessage(self, message):
-        self.factory.protocol.sendLine("SERVICE:listServices")
+    def addMessageToQueue(self, message):
+        self.factory.addMessageToQueue(message)
 
 def main():
 
