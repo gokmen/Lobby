@@ -15,6 +15,10 @@ import os
 import sys
 from OpenSSL import SSL
 
+from lobby.utils import get_server_addr
+from lobby.utils import init_certificates
+from lobby.utils import get_server_certificate
+
 from twisted.internet import ssl, reactor
 from twisted.internet.error import ReactorNotRunning
 from twisted.internet.protocol import ClientFactory
@@ -25,7 +29,7 @@ from lobby.ssl.verifiedssl import VerifyingClientContextFactory
 
 MY_NAME = "CLIENT"
 
-class LobbyClient(LineReceiver):
+class LobbyClientReceiver(LineReceiver):
 
     def connectionMade(self):
         self.sendLine("HELLO")
@@ -41,7 +45,7 @@ class LobbyClient(LineReceiver):
         # print 'I received :', line
 
 class LobbyClientFactory(ClientFactory):
-    protocol = LobbyClient
+    protocol = LobbyClientReceiver
 
     def clientConnectionFailed(self, connector, reason):
         print 'Connection Failed:', reason.getErrorMessage()
@@ -54,6 +58,25 @@ class LobbyClientFactory(ClientFactory):
         except ReactorNotRunning:
             pass
 
+class LobbyClient(object):
+
+    def __init__(self):
+        certificate, key_file = init_certificates()
+        self.ctx_factory = VerifyingClientContextFactory(certificate, key_file)
+        self.factory = LobbyClientFactory()
+
+    def loadServerCertificate(self, certificate):
+        self.ctx_factory.loadAllowedCertificate(certificate)
+
+    def connectSSL(self, server, port):
+        reactor.connectSSL(server, int(port), self.factory, self.ctx_factory)
+
+    def run(self):
+        reactor.run()
+
+    def sendMessage(self, message):
+        self.factory.protocol.sendLine("SERVICE:listServices")
+
 def main():
 
     if len(sys.argv) < 4:
@@ -62,22 +85,10 @@ def main():
     from twisted.python import log
     log.startLogging(sys.stdout)
 
-    from lobby.utils import get_server_addr
-    from lobby.utils import init_certificates
-    from lobby.utils import get_server_certificate
-
-    certificate, key_file = init_certificates()
-    ctxFactory = VerifyingClientContextFactory(certificate, key_file)
-
-    # The client will only connect to a server which presents this certificate.
-    ctxFactory.loadAllowedCertificate(sys.argv[3])
-
-    server, port = sys.argv[1], sys.argv[2]
-
-    factory = LobbyClientFactory()
-
-    reactor.connectSSL(server, int(port), factory, ctxFactory)
-    reactor.run()
+    client = LobbyClient()
+    client.loadServerCertificate(sys.argv[3])
+    client.connectSSL(sys.argv[1], sys.argv[2])
+    client.run()
 
 if __name__ == '__main__':
     main()
