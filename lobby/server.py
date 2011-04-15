@@ -28,30 +28,40 @@ from lobby.actions import ActionPackages
 
 MY_NAME = "SERVER"
 
-ACTIONS = {"SERVICE" : ActionServices(),
-           "PACKAGE" : ActionPackages()}
+PACKAGES = {"SERVICE" : ActionServices(),
+            "PACKAGE" : ActionPackages()}
 
 class Lobby(Protocol):
 
     delimiter = '\r\n'
 
     def dataReceived(self, data):
-        action = data
+        data = data.strip().split('\r\n')
 
-        if action.startswith("HELLO"):
-            self.pushMessage("HELLO")
-        elif action.startswith('MY_NAME_IS:'):
-            print ("HAND_SHAKE suceeded with '%s'" % action.split(':')[1])
-            self.pushMessage("AUTHORIZED")
-        elif action in ACTIONS:
-            self.pushMessage(ACTIONS[action].run(method))
-        else:
-            self.pushMessage("NOT_IMPLEMENTED")
+        for chunk in data:
+            _chunk = chunk.split(';')
+            package = _chunk.pop(0)
+            method = '' if not _chunk else _chunk.pop(0)
+            args = _chunk
 
-    def pushMessage(self, message):
-        if type(message) in (list, tuple):
-            message = ','.join(message)
-        self.transport.write(message + self.delimiter)
+            print "PROCESSING: package, method, args:", package, method, args
+            if package == "HELLO":
+                self.pushMessage("HELLO|HELLO")
+            elif package == "HELLO|MY_NAME_IS":
+                print ("HAND_SHAKE suceeded with '%s'" % method)
+                self.pushMessage("HELLO|AUTHORIZED")
+            elif package in PACKAGES:
+                self.pushMessage(chunk, PACKAGES[package].run(method, args))
+            else:
+                self.pushMessage("%s|NOT_IMPLEMENTED" % chunk)
+
+    def pushMessage(self, message, args = None):
+        if type(args) in (list, tuple):
+            args = ','.join(args)
+        if args:
+            message = '%s|%s' % (message, args)
+        print "TRYING TO WRITE:::", message
+        self.transport.write(str(message + self.delimiter))
 
 class LobbyFactory(Factory):
     protocol = Lobby

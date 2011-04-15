@@ -17,14 +17,15 @@ class Action(object):
         self.actionKey = key
         self.knownActions = []
 
-    def run(self, action, *args):
-        if hasattr(self, "_" + action):
-            if args:
-                return getattr(self, "_" + action)(args)
+    def run(self, method, args):
+
+        if hasattr(self, "_" + method):
+            if len(args) > 0:
+                return getattr(self, "_" + method)(args)
             else:
-                return getattr(self, "_" + action)()
+                return getattr(self, "_" + method)()
         else:
-            return "No such %s method defined for %s Action !" % (action, self.actionKey)
+            return "No such %s method defined for %s Action !" % (method, self.actionKey)
 
 class ActionServices(Action):
 
@@ -36,8 +37,9 @@ class ActionServices(Action):
         return list(self.link.System.Service)
 
     def _isRunning(self, args):
-        if service in self._listServices:
-            if unicode(link.System.Service[args[0]].info()[2]) == "on":
+        service = args[0]
+        if unicode(service) in self._listServices():
+            if unicode(self.link.System.Service[service].info()[2]) == "on":
                 return "TRUE"
         return "FALSE"
 
