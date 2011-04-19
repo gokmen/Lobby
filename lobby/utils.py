@@ -57,6 +57,6 @@ def get_server_addr():
 
 def log(*message):
     if getenv('LOBBY_SHOW_LOGS'):
-        print ''.join(message)
+        print message
     return
 
