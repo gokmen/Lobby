@@ -13,6 +13,7 @@ import sys
 import glob
 
 from os import mkdir
+from os import getenv
 from os.path import join
 from os.path import expanduser
 from os.path import exists
@@ -49,9 +50,13 @@ def get_server_certificate():
 
 def get_server_addr():
     _server_addr = join(_root, 'server_addr')
-
     if not exists(_server_addr):
         sys.exit('Server configuration file does not exists at %s !\nExiting...' % _root)
 
     return file(_server_addr).read().split(':')
+
+def log(*message):
+    if getenv('LOBBY_SHOW_LOGS'):
+        print ''.join(message)
+    return
 

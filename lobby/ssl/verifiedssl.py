@@ -16,6 +16,7 @@
 
 from OpenSSL import SSL, crypto
 from twisted.internet import ssl
+from lobby.utils import log
 
 # Cribbed from M2Crypto cb.py which,
 # Cribbed from OpenSSL's apps/s_cb.c.
@@ -46,14 +47,14 @@ def ssl_info_callback(connection, where, ret):
 
     if (where & SSL_CB_LOOP):
         # sys.stderr.write("LOOP: %s: %s\n" % (state, m2.ssl_get_state_v(ssl_ptr)))
-        print "LOOP: %s: %s\n" % (state, connection.state_string())
+        log("LOOP: %s: %s\n" % (state, connection.state_string()))
         return
 
     if (where & SSL_CB_EXIT):
         if not ret:
-            print "FAILED: %s: %s\n" % (state, connection.state_string())
+            log("FAILED: %s: %s\n" % (state, connection.state_string()))
         else:
-            print "INFO: %s: %s\n" % (state, connection.state_string())
+            log("INFO: %s: %s\n" % (state, connection.state_string()))
         return
 
     # I don't think this code would ever execute under pyOpenSSL because
@@ -65,8 +66,7 @@ def ssl_info_callback(connection, where, ret):
             w = 'write'
         # sys.stderr.write("ALERT: %s: %s: %s\n" % \
         #     (w, m2.ssl_get_alert_type_v(ret), m2.ssl_get_alert_desc_v(ret)))
-        print "ALERT: %s: DUNNO HOW TO GET ALERT INFO!\n" % \
-            (w)
+        log("ALERT: %s: DUNNO HOW TO GET ALERT INFO!\n" % w)
         return
 
 class VerifyingBase:
@@ -101,13 +101,13 @@ class VerifyingBase:
         # UNDOCUMENTED:
         # retcode is non-zero if the built in verification code would
         # succeed, false otherwise.
-        print "verify_certificate: ", cert, errno, depth, retcode
+        # log("verify_certificate: ", cert, errno, depth, retcode)
 
         # UNDOCUMENTED:
         # See http://divmod.org/websvn/wsvn/Quotient/trunk/mantissa/sslverify.py?op=file&rev=0&sc=0
         # _errorcodes for errno descriptions. 
         if not retcode:
-            print "VERIFICATION FAILED: ", errno
+            log("VERIFICATION FAILED: ", errno)
 
         return retcode
 

@@ -23,6 +23,7 @@ from twisted.internet.protocol import Factory
 
 from lobby.ssl.verifiedssl import VerifyingServerContextFactory
 
+from lobby.utils import log
 from lobby.actions import ActionServices
 from lobby.actions import ActionPackages
 
@@ -44,11 +45,11 @@ class Lobby(Protocol):
             method = '' if not _chunk else _chunk.pop(0)
             args = _chunk
 
-            print "PROCESSING: package, method, args:", package, method, args
+            log("PROCESSING: package, method, args:", package, method, args)
             if package == "HELLO":
                 self.pushMessage("HELLO|HELLO")
             elif package == "HELLO|MY_NAME_IS":
-                print ("HAND_SHAKE suceeded with '%s'" % method)
+                log("HAND_SHAKE suceeded with '%s'" % method)
                 self.pushMessage("HELLO|AUTHORIZED")
             elif package in PACKAGES:
                 self.pushMessage(chunk, PACKAGES[package].run(method, args))
@@ -60,7 +61,7 @@ class Lobby(Protocol):
             args = ','.join(args)
         if args:
             message = '%s|%s' % (message, args)
-        print "TRYING TO WRITE:::", message
+        log("TRYING TO WRITE:::", message)
         self.transport.write(str(message + self.delimiter))
 
 class LobbyFactory(Factory):
@@ -68,8 +69,11 @@ class LobbyFactory(Factory):
 
 if __name__ == '__main__':
 
-    from twisted.python import log
-    log.startLogging(sys.stdout)
+    import os
+
+    if os.getenv('LOBBY_SHOW_LOGS'):
+        from twisted.python import log as twisted_log
+        twisted_log.startLogging(sys.stdout)
 
     from lobby.utils import init_certificates
     from lobby.utils import get_client_certificates
